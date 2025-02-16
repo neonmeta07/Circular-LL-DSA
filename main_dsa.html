@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Circular Doubly Linked List Visualization</title>
+    <style>
+        /* General Body Styling */
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-image: 
+                url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect width="100" height="100" fill="rgba(255, 255, 255, 0.05)"/><circle cx="50" cy="50" r="40" fill="rgba(255, 255, 255, 0.1)"/></svg>'),
+                linear-gradient(135deg, #ff7e9c, #ab5ec6, #6a0dad);
+            background-size: 400% 400%;
+            animation: gradientBG 10s ease infinite;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            padding: 0;
+        }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        h1 {
+            font-size: 2.5em;
+            color: white;
+            margin: 20px 0;
+            margin-bottom: 100px;
+            letter-spacing: 2px;
+            text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            width: 100%;
+        }
+
+        /* Main Container Styling */
+        .main-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            width: 80%;
+            gap: 80px; /* Increased gap for more space */
+        }
+
+        /* Control Panel Styling */
+        .controls {
+            background: #FFB3D9; /* Light pink background */
+            padding: 20px; /* Reduced padding for a smaller form */
+            border-radius: 20px; /* Adjusted border radius for a smoother look */
+            box-shadow: 0px 10px 30px rgba(0, 0, 0, 0.2);
+            width: 280px; /* Slightly reduced width */
+            transition: transform 0.3s ease;
+        }
+
+        .controls:hover {
+            transform: scale(1.05);
+        }
+
+        
+        input[type="text"] {
+            padding: 8px; /* Reduced padding */
+            margin: 5px 0; /* Reduced margin */
+            font-size: 0.9em; /* Smaller font size */
+            border-radius: 15px; /* Adjusted border radius */
+            border: 2px solid #811b47;
+            outline: none;
+            width: 90%;
+        }
+
+        input[type="text"]:focus {
+            border-color: #801959;
+        }
+
+        button {
+            padding: 8px 15px; 
+            font-size: 0.9em; 
+            border-radius: 15px; 
+            margin: 5px 0; 
+            background-color: #db3487;
+            border-color: #801959;
+        }
+
+        button:hover {
+            background-color: #84134f; 
+            transform: translateY(-2px);
+        }
+
+        select {
+            padding: 10px;
+            border-radius: 20px;
+            border: 2px solid #811b47;
+            outline: none;
+            font-size: 1em;
+            width: 95%; 
+            background-color: #fff; 
+            color: #333; 
+            transition: all 0.3s ease;
+            cursor: pointer; 
+        }
+
+        select:hover {
+            border-color: #801959; 
+        }
+
+        select:focus {
+            border-color: #db3487; 
+            background-color: #f0e6f7; 
+        }
+
+
+        /* Visualization Container Styling */
+        .ring-circle {
+            position: relative;
+            border: 50px solid #FFB3D9;
+            border-radius: 50%;
+            width: 300px;
+            height: 300px;
+            box-shadow: 0px 10px 30px rgba(0, 0, 0, 0.2);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: transparent;
+        }
+
+
+
+
+        /* Styling for Nodes */
+        .node {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(90deg, #fb22ff, #ff5bfb); /* Gradient for node background */
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-size: 16px;
+            font-weight: bold;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .node {
+            background-color: initial; /* Remove any fixed background color */
+            transition: background-color 0.5s ease; /* Smooth transition when color changes */
+        }
+
+        .node:hover {
+            transform: scale(1.1);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Node Value and Position Styling */
+        .node .node-value,
+        .node .node-position {
+            font-size: 1em;
+            margin-top: 5px;
+        }
+
+        
+        .line {
+            position: absolute;
+            background-color: #3498db; 
+            height: 2px;
+            width: 100px; 
+            transform-origin: left;
+            z-index: -1;
+            transition: background-color 0.3s ease;
+        }
+        #particlesCanvas {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: -1; /*It ensures that the animation stayes behind*/
+        }
+    </style>
+</head>
+<body>
+    <h1>Circular Linked List Visualization</h1>
+    <canvas id="particlesCanvas"></canvas>
+    <div class="main-container">
+        <!-- Control Panel for inserting and deleting nodes -->
+        <div class="controls">
+            <input type="text" id="nodeValue" placeholder="Enter value">
+            <button onclick="insertNode()">Insert Node</button>
+            <br><br>
+            <input type="text" id="positionValue" placeholder="Position (Optional)">
+            <button onclick="insertNodeAtPosition()">Insert at Position</button>
+            <br><br>
+            
+            <!-- Search Section -->
+            <input type="text" id="searchValue" placeholder="Search for the value">
+            <button onclick="searchValue()">Search Value</button>
+            <br><br>
+            
+            <!-- Delete Section -->
+            <select id="deleteOption">
+                <option value="value">Delete by Value</option>
+                <option value="position">Delete at Position</option>
+            </select>
+            
+            <input type="text" id="deleteInput" placeholder="Enter value or position to delete">
+            <button onclick="deleteNode()">Delete Node</button>
+        </div>
+
+
+        <!-- Container for the visualization -->
+        <div class="ring-circle" id="visualization"></div>
+        
+    </div>
+
+    <script>
+        // Define the Node class
+        class Node {
+            constructor(data) {
+                this.data = data;
+                this.next = null;
+                this.prev = null;  
+            }
+        }
+
+        // Circular Doubly LinkedList class
+        class CircularDoublyLinkedList {
+            constructor() {
+                this.head = null;
+            }
+
+            // Insert a new node at the end
+            insert(data) {
+                let newNode = new Node(data);
+                if (!this.head) {
+                    this.head = newNode;
+                    newNode.next = newNode;  // Circular reference to head
+                    newNode.prev = newNode;  // Circular reference to head (prev)
+                } else {
+                    let last = this.head.prev;  // Get the last node (previous to head)
+                    last.next = newNode;
+                    newNode.prev = last;
+                    newNode.next = this.head;
+                    this.head.prev = newNode;
+                }
+                this.visualize();
+            }
+
+            // Insert a node at a specific position
+            insertAtPosition(data, position) {
+                let newNode = new Node(data);
+                if (position < 1) {
+                    alert('Position must be greater than 0');
+                    return;
+                }
+
+                if (!this.head || position === 1) {
+                    if (this.head) {
+                        let last = this.head.prev;
+                        newNode.next = this.head;
+                        newNode.prev = last;
+                        last.next = newNode;
+                        this.head.prev = newNode;
+                    } else {
+                        newNode.next = newNode;
+                        newNode.prev = newNode;
+                    }
+                    this.head = newNode;
+                } else {
+                    let temp = this.head;
+                    let count = 1;
+                    while (count < position - 1 && temp.next !== this.head) {
+                        temp = temp.next;
+                        count++;
+                    }
+                    newNode.next = temp.next;
+                    newNode.prev = temp;
+                    temp.next.prev = newNode;
+                    temp.next = newNode;
+                }
+                this.visualize();
+            }
+
+            // Delete a node by value
+            delete(data) {
+                if (!this.head) return;
+
+                let temp = this.head;
+
+                // If the node to be deleted is the head
+                if (temp.data === data) {
+                    if (temp.next === this.head) {
+                        this.head = null;  // Only one node
+                    } else {
+                        let last = this.head.prev;
+                        last.next = this.head.next;
+                        this.head.next.prev = last;
+                        this.head = this.head.next;
+                    }
+                } else {
+                    do {
+                        temp = temp.next;
+                    } while (temp !== this.head && temp.data !== data);
+
+                    if (temp.data === data) {
+                        temp.prev.next = temp.next;
+                        temp.next.prev = temp.prev;
+                    }
+                }
+                this.visualize();
+            }
+
+            // Delete a node at a specific position
+            deleteAtPosition(position) {
+                if (!this.head || position < 1) {
+                    alert('Invalid position');
+                    return;
+                }
+
+                let temp = this.head;
+                if (position === 1) {
+                    // Deleting the head node
+                    if (temp.next === this.head) {
+                        this.head = null;  // Only one node
+                    } else {
+                        let last = this.head.prev;
+                        last.next = this.head.next;
+                        this.head.next.prev = last;
+                        this.head = this.head.next;
+                    }
+                    this.visualize();
+                    return;
+                }
+
+                let count = 1;
+                while (count < position && temp.next !== this.head) {
+                    temp = temp.next;
+                    count++;
+                }
+
+                if (count === position) {
+                    temp.prev.next = temp.next;
+                    temp.next.prev = temp.prev;
+                } else {
+                    alert('Position exceeds the number of nodes');
+                }
+                this.visualize();
+            }
+
+
+            // Traverse the list and return an array of node values
+            traverse() {
+                let result = [];
+                if (!this.head) return result;
+
+                let temp = this.head;
+                let count = 0;
+                do {
+                    result.push({ data: temp.data, position: count + 1 });
+                    temp = temp.next;
+                    count++;
+                } while (temp !== this.head);
+
+                return result;
+            }
+
+
+            // Visualization of the linked list
+            visualize() {
+                let visualizationDiv = document.getElementById("visualization");
+                visualizationDiv.innerHTML = '';  // Clear previous visualization
+
+                let listData = this.traverse();
+                let numNodes = listData.length;
+                let angleIncrement = 360 / numNodes;
+
+                listData.forEach((node, index) => {
+                    let nodeDiv = document.createElement("div");
+                    nodeDiv.className = "node";
+
+                    // Rotate the node container but keep the text upright
+                    nodeDiv.style.transform = `rotate(${angleIncrement * index}deg) translate(0, -150px) rotate(-${angleIncrement * index}deg)`; // Adjust rotation so text stays upright
+                    
+                    // Content: Display value and position (Position word is kept, Data word is removed)
+                    nodeDiv.innerHTML = `<span class="node-value">${node.data}</span><br><span class="node-position">Position: ${node.position}</span>`;
+                    visualizationDiv.appendChild(nodeDiv);
+                });
+            }
+        }
+
+        // Create a new Circular Doubly Linked List instance
+        let circularList = new CircularDoublyLinkedList();
+
+        // Insert Node function
+        function insertNode() {
+            let value = document.getElementById("nodeValue").value;
+            if (value) {
+                circularList.insert(value);
+                document.getElementById("nodeValue").value = '';
+            }
+        }
+
+        // Insert Node at Position function
+        function insertNodeAtPosition() {
+            let value = document.getElementById("nodeValue").value;
+            let position = parseInt(document.getElementById("positionValue").value);
+            if (value && !isNaN(position)) {
+                circularList.insertAtPosition(value, position);
+                document.getElementById("nodeValue").value = '';
+                document.getElementById("positionValue").value = '';
+            }
+        }
+
+        // Delete Node function
+        function deleteNode() {
+            let deleteOption = document.getElementById("deleteOption").value;
+            let deleteInput = document.getElementById("deleteInput").value;
+
+            if (deleteOption === "value") {
+                // Delete by value
+                if (deleteInput) {
+                    circularList.delete(deleteInput);
+                    document.getElementById("deleteInput").value = '';
+                }
+            } else if (deleteOption === "position") {
+                // Delete at position
+                let position = parseInt(deleteInput);
+                if (!isNaN(position) && position > 0) {
+                    circularList.deleteAtPosition(position);
+                    document.getElementById("deleteInput").value = '';
+                } else {
+                    alert('Please enter a valid position greater than 0.');
+                }
+            }
+        }
+
+        // Search Node function
+        function searchValue() {
+            let value = document.getElementById("searchValue").value;
+            if (value) {
+                // Find the node in the circular linked list
+                let temp = circularList.head;
+                let found = false;
+                if (!temp) return; // If the list is empty
+
+                do {
+                    if (temp.data === value) {
+                        highlightNode(temp); // Call the highlight function
+                        found = true;
+                        break; // Stop searching if the node is found
+                    }
+                    temp = temp.next;
+                } while (temp !== circularList.head);
+
+                if (!found) {
+                    alert("Node not found!");
+                }
+                document.getElementById("searchValue").value = ''; // Clear the input after search
+            }
+        }
+
+        function highlightNode(node) {
+            let visualizationDiv = document.getElementById("visualization");
+            let nodeDivs = visualizationDiv.getElementsByClassName("node");
+
+            for (let i = 0; i < nodeDivs.length; i++) {
+                if (nodeDivs[i].querySelector(".node-value").innerText === node.data) {
+                    nodeDivs[i].style.boxShadow = "0 0 40px 40px rgba(255, 255, 0, 1)"; 
+                    setTimeout(() => {
+                        nodeDivs[i].style.boxShadow = "0 4px 10px rgba(0, 0, 0, 0.1)"; // Reset to original shadow
+                    }, 2000); // 2 seconds
+                    break;
+                }
+            }
+        }
+
+
+        const canvas = document.getElementById('particlesCanvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        let particles = [];
+
+        class Particle {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.size = Math.random() * 5 + 1;
+                this.speedX = Math.random() * 3 - 1.5;
+                this.speedY = Math.random() * 3 - 1.5;
+            }
+
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                if (this.size > 0.2) this.size -= 0.1; // Fade out effect
+            }
+
+            draw() {
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.closePath();
+                ctx.fill();
+            }
+        }
+
+        function init() {
+            for (let i = 0; i < 100; i++) {
+                particles.push(new Particle(Math.random() * canvas.width, Math.random() * canvas.height));
+            }
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach((particle, index) => {
+                particle.update();
+                particle.draw();
+                if (particle.size <= 0.2) {
+                    particles.splice(index, 1);
+                    particles.push(new Particle(Math.random() * canvas.width, Math.random() * canvas.height));
+                }
+            });
+            requestAnimationFrame(animate);
+        }
+
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+
+        init();
+        animate();
+
+    </script>
+</body>
+</html>
